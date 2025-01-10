@@ -1,13 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>인증완료</title>
-
+    <style>
+        ul {
+            list-style: none;
+            padding: 20px;
+            margin: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        li {
+            margin: 10px 0;
+        }
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
+    <h2>인증 완료 됐어욤</h2>
 
-인증 완료 됐어욤
-
+    <ul>
+        <div class="title">사용자 정보</div>
+        <li><span class="label">ID:</span><span th:text="${id}"></span></li>
+        <li><span class="label">이메일:</span><span th:text="${email}"></span></li>
+        <li><span class="label">닉네임:</span><span th:text="${nickname}"></span></li>
+    </ul>
+    <a href="/logout" class="logout-btn">로그아웃</a>
 </body>
 </html>
