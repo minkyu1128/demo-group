@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SSE Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <h1 class="text-3xl font-bold mb-6">SSE Chat Room</h1>
+
+    <div class="grid grid-cols-12 gap-6">
+        <!-- 왼쪽 사이드바: 접속자 목록 -->
+        <div class="col-span-3">
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <div class="mb-4">
+                    <h2 class="text-xl font-semibold mb-2">내 정보</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="clientId" placeholder="닉네임 입력"
+                               class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="connect()" id="connectBtn"
+                                class="bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600">
+                            접속
+                        </button>
+                        <button onclick="disconnect()" id="disconnectBtn" disabled
+                                class="bg-red-500 text-white px-3 py-2 rounded text-sm hover:bg-red-600">
+                            나가기
+                        </button>
+                    </div>
+                    <div id="connectionStatus" class="text-sm text-gray-600 mt-2">
+                        상태: 미접속
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">접속자 목록</h2>
+                    <div id="clientList" class="space-y-2">
+                        <!-- 접속자 목록이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽 메인: 채팅 영역 -->
+        <div class="col-span-9">
+            <div class="bg-white rounded-lg shadow-md h-[600px] flex flex-col">
+                <!-- 채팅 로그 영역 -->
+                <div id="chatLog" class="flex-1 p-4 overflow-y-auto space-y-2">
+                    <!-- 채팅 메시지가 여기에 동적으로 추가됩니다 -->
+                </div>
+
+                <!-- 메시지 입력 영역 -->
+                <div class="border-t p-4">
+                    <div class="flex gap-2 mb-2">
+                        <select id="messageType" class="p-2 border rounded text-sm">
+                            <option value="broadcast">전체 메시지</option>
+                            <option value="private">개인 메시지</option>
+                        </select>
+                        <select id="targetClient" class="p-2 border rounded text-sm flex-1" disabled>
+                            <option value="">받는 사람 선택</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="messageInput" placeholder="메시지를 입력하세요" disabled
+                               class="flex-1 p-2 border rounded">
+                        <button onclick="sendMessage()" id="sendBtn" disabled
+                                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            전송
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let eventSource = null;
+
+    // 메시지 타입 선택에 따른 UI 업데이트
+    document.getElementById('messageType').addEventListener('change', function(e) {
+        const targetSelect = document.getElementById('targetClient');
+        targetSelect.disabled = e.target.value === 'broadcast';
+    });
+
+    // 연결하기
+    function connect() {
+        const clientId = document.getElementById('clientId').value.trim();
+        if (!clientId) {
+            alert('닉네임을 입력해주세요');
+            return;
+        }
+
+        if (eventSource) {
+            alert('이미 접속 중입니다');
+            return;
+        }
+
+        eventSource = new EventSource(`/api/v1/sse/connect?clientId=${clientId}`);
+
+        eventSource.onopen = () => {
+            updateConnectionStatus(true);
+            addChatMessage('시스템', `${clientId}님이 접속하셨습니다.`, 'system');
+        };
+
+        eventSource.addEventListener('message', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'clientList') {
+                    updateClientList(data.clients);
+                } else {
+                    addChatMessage(data.sender, data.message, data.type);
+                }
+            } catch (error) {
+                console.error('메시지 처리 오류:', error);
+            }
+        });
+
+        eventSource.onerror = (error) => {
+            console.error('SSE 연결 오류:', error);
+            disconnect();
+        };
+    }
+
+    // 연결 해제하기
+    function disconnect() {
+        if (eventSource) {
+            const clientId = document.getElementById('clientId').value;
+
+            // 서버에 연결 해제 요청
+            fetch(`/api/v1/sse/disconnect?clientId=${clientId}`, {
+                method: 'POST'
+            }).finally(() => {
+                eventSource.close();
+                eventSource = null;
+                updateConnectionStatus(false);
+                addChatMessage('시스템', `${clientId}님이 퇴장하셨습니다.`, 'system');
+            });
+        }
+    }
+
+    // 연결 상태 업데이트
+    function updateConnectionStatus(isConnected) {
+        document.getElementById('connectionStatus').textContent =
+            `상태: ${isConnected ? '접속됨' : '미접속'}`;
+        document.getElementById('connectBtn').disabled = isConnected;
+        document.getElementById('disconnectBtn').disabled = !isConnected;
+        document.getElementById('clientId').disabled = isConnected;
+        document.getElementById('messageInput').disabled = !isConnected;
+        document.getElementById('sendBtn').disabled = !isConnected;
+
+        if (!isConnected) {
+            document.getElementById('clientList').innerHTML = '';
+            document.getElementById('targetClient').innerHTML = '<option value="">받는 사람 선택</option>';
+        }
+    }
+
+    // 메시지 전송
+    function sendMessage() {
+        const messageType = document.getElementById('messageType').value;
+        const targetClient = document.getElementById('targetClient').value;
+        const message = document.getElementById('messageInput').value.trim();
+        const clientId = document.getElementById('clientId').value;
+
+        if (!message) return;
+
+        if (messageType === 'private' && !targetClient) {
+            addChatMessage('시스템', '받는 사람을 선택해주세요.', 'error');
+            return;
+        }
+
+        const url = messageType === 'broadcast'
+            ? '/api/v1/sse/broadcast'
+            : `/api/v1/sse/send/${targetClient}`;
+
+        const payload = {
+            sender: clientId,
+            message: message,
+            type: messageType
+        };
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('메시지 전송 실패');
+                document.getElementById('messageInput').value = '';
+            })
+            .catch(error => {
+                addChatMessage('시스템', error.message, 'error');
+            });
+    }
+
+    // 접속자 목록 업데이트
+    function updateClientList(clients) {
+        const clientList = document.getElementById('clientList');
+        const targetSelect = document.getElementById('targetClient');
+        const currentClientId = document.getElementById('clientId').value;
+
+        clientList.innerHTML = '';
+        targetSelect.innerHTML = '<option value="">받는 사람 선택</option>';
+
+        clients.forEach(client => {
+            // 접속자 목록에 추가
+            const clientDiv = document.createElement('div');
+            clientDiv.className = client === currentClientId
+                ? 'p-2 bg-blue-50 rounded text-sm font-bold'
+                : 'p-2 bg-gray-50 rounded text-sm';
+            clientDiv.textContent = client;
+            clientList.appendChild(clientDiv);
+
+            // 메시지 수신자 선택옵션에 추가 (자기 자신 제외)
+            if (client !== currentClientId) {
+                const option = document.createElement('option');
+                option.value = client;
+                option.textContent = client;
+                targetSelect.appendChild(option);
+            }
+        });
+    }
+
+    // 채팅 메시지 추가
+    function addChatMessage(sender, message, type) {
+        const chatLog = document.getElementById('chatLog');
+        const messageDiv = document.createElement('div');
+        const currentClient = document.getElementById('clientId').value;
+
+        let className = 'p-2 rounded max-w-[80%] ';
+
+        if (type === 'system') {
+            className += 'bg-gray-100 text-gray-600 text-center mx-auto w-full';
+        } else if (type === 'error') {
+            className += 'bg-red-100 text-red-600 text-center mx-auto w-full';
+        } else if (sender === currentClient) {
+            className += 'bg-blue-100 ml-auto';
+        } else {
+            className += 'bg-gray-100';
+        }
+
+        messageDiv.className = className;
+
+        const escapedMessage = message
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        messageDiv.innerHTML = type === 'system' || type === 'error'
+            ? escapedMessage
+            : `<div class="text-xs text-gray-600">${sender}</div>${escapedMessage}`;
+
+        chatLog.appendChild(messageDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // Enter 키로 메시지 전송
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // 페이지 종료 시 연결 해제
+    window.addEventListener('beforeunload', function() {
+        disconnect();
+    });
+</script>
+</body>
+</html>

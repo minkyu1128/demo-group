@@ -2,7 +2,7 @@ package com.example.sse.controller;
 
 import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
-import com.example.sse.service.impl.BasicSseEmitterServiceImpl;
+import com.example.sse.service.impl.RedisSseEmitterServiceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -12,13 +12,13 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * 클라이언트의 SSE 연결 요청 처리 및 이벤트 전송을 담당
  */
 @RestController
-@RequestMapping("/api/v1/sse")
-public class SseController {
+@RequestMapping("/api/v1/sse-redis")
+public class SseRedisController {
 
     private final SseEmitterService sseEmitterService;
 
-    public SseController(BasicSseEmitterServiceImpl basicSseEmitterService) {
-        this.sseEmitterService = basicSseEmitterService;
+    public SseRedisController(RedisSseEmitterServiceImpl redisSseEmitterService) {
+        this.sseEmitterService = redisSseEmitterService;
     }
 
     /**

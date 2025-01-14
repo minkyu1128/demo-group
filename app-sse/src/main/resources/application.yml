@@ -1,9 +1,29 @@
 server:
-  port: 8080
+  port: 18080
 
 spring:
   application:
     name: app-sse
+
+  # RedisSseEmitter 사용 시
+  data:
+    redis:
+      host: localhost
+      port: 16379
+    # 필요한 경우 추가 설정
+    # password: your-password
+    # database: 0
+    # timeout: 60000
+
+  # Thymeleaf 설정
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML5
+    cache: false
+  devtools:
+    restart:
+      enabled: true
 
 logging:
   level:
