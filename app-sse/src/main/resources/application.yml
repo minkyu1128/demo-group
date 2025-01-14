@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: app-sse
+
+logging:
+  level:
+    com.example.sse: DEBUG

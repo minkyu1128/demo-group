@@ -1,13 +1,11 @@
-package appsso;
+package com.example.sse;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AppSSOApplication {
-
+public class SSEApplication {
     public static void main(String[] args) {
-        SpringApplication.run(AppSSOApplication.class, args);
+        SpringApplication.run(SSEApplication.class, args);
     }
-
-}
+} 

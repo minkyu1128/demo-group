@@ -1,0 +1,25 @@
+/**
+ * SSE 모듈의 빌드 설정 파일
+ * 서버 사이드 이벤트 기능을 위한 의존성과 빌드 설정을 정의
+ */
+
+// JAR 파일 생성 활성화
+bootJar {
+    enabled = true
+}
+
+dependencies {
+    // 공통 모듈 의존성
+    implementation project(':module-common')
+    // Spring Web 의존성 (SSE 지원을 위한 기본 웹 기능)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // WebFlux 의존성 (비동기 이벤트 스트림 처리를 위한 지원)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    // 테스트 의존성
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// JUnit 플랫폼 사용 설정
+test {
+    useJUnitPlatform()
+}
