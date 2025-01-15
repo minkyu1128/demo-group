@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,6 +20,7 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
     // 클라이언트 ID를 키로 하는 SSE 이미터 저장소
     private final ConcurrentHashMap<String, SseEmitter> emitters = new ConcurrentHashMap<>();
     private final Logger logger = LoggerFactory.getLogger(BasicSseEmitterServiceImpl.class);
+    private final long reconnectTimeMillis = 10 * 1000L;
 
     @Override
     public SseEmitter createEmitter(String clientId) {
@@ -43,6 +45,16 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
             logger.error("SSE error occurred for client: {}", clientId, e);
         });
 
+        try {
+            emitter.send(SseEmitter.event()
+                    .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
+                    .name("connect")      // 이벤트 이름
+                    .data("연결 되었습니다.")       // 이벤트 데이터
+                    .reconnectTime(reconnectTimeMillis)); // 재연결 시간
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to connect send event to client: " + clientId, e);
+        }
+
         // 이미터를 저장소에 저장
         emitters.put(clientId, emitter);
         return emitter;
@@ -61,7 +73,7 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
                     .id(event.getId())           // 이벤트 ID
                     .name(event.getEvent())      // 이벤트 이름
                     .data(event.getData())       // 이벤트 데이터
-                    .reconnectTime(event.getRetry() != null ? event.getRetry() : 10000L)); // 재연결 시간
+                    .reconnectTime(event.getRetry() != null ? event.getRetry() : reconnectTimeMillis)); // 재연결 시간
         } catch (Exception e) {
             emitters.remove(clientId);
             throw new RuntimeException("Failed to send event to client: " + clientId, e);
