@@ -1,5 +1,8 @@
 package com.example.sse.config;
 
+import com.example.sse.model.RedisMessage;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -37,10 +40,18 @@ public class RedisConfig {
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        // RedisMessage 클래스를 위한 JSON 직렬화 설정
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+        Jackson2JsonRedisSerializer<RedisMessage> jsonSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, RedisMessage.class);
+
         RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);   // Redis 연결 설정
-        template.setKeySerializer(new StringRedisSerializer()); // 키 직렬화 설정 (문자열)
-        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));   // 값 직렬화 설정 (JSON)
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(jsonSerializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(jsonSerializer);
+
         return template;
     }
 } 

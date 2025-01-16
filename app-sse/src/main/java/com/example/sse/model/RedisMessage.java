@@ -2,6 +2,9 @@ package com.example.sse.model;
 
 import java.io.Serializable;
 
+/**
+ * Redis Pub/Sub 메시지를 전달하기 위한 모델 클래스
+ */
 public class RedisMessage implements Serializable {
     private String type;
     private String clientId;

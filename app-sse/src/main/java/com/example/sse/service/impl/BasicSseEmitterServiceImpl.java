@@ -4,6 +4,7 @@ import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -45,12 +46,16 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
             logger.error("SSE error occurred for client: {}", clientId, e);
         });
 
+        // 연결 완료 이벤트 전송
         try {
             emitter.send(SseEmitter.event()
                     .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
                     .name("connect")      // 이벤트 이름
-                    .data("연결 되었습니다.")       // 이벤트 데이터
-                    .reconnectTime(reconnectTimeMillis)); // 재연결 시간
+//                    .data("connected Success!")  // 이벤트 데이터
+                    .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
+                    .reconnectTime(reconnectTimeMillis) // 재연결 시간
+                    .comment("연결 되었습니다.")       // 주석
+            );
         } catch (IOException e) {
             throw new RuntimeException("Failed to connect send event to client: " + clientId, e);
         }

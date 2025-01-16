@@ -5,9 +5,13 @@ import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.listener.Topic;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -21,14 +25,16 @@ import java.util.concurrent.TimeUnit;
 public class RedisSseEmitterServiceImpl implements SseEmitterService {
     private static final String REDIS_SSE_CHANNEL = "sse:events";
     private static final String REDIS_SSE_CLIENTS = "sse:clients";
-    
+
     private final ConcurrentHashMap<String, SseEmitter> localEmitters = new ConcurrentHashMap<>();
     private final RedisTemplate<String, Object> redisTemplate;
     private final RedisMessageListenerContainer redisMessageListener;
     private final Logger logger = LoggerFactory.getLogger(RedisSseEmitterServiceImpl.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public RedisSseEmitterServiceImpl(RedisTemplate<String, Object> redisTemplate, RedisMessageListenerContainer redisMessageListener ) {
+    private final long reconnectTimeMillis = 10 * 1000L;
+
+    public RedisSseEmitterServiceImpl(RedisTemplate<String, Object> redisTemplate, RedisMessageListenerContainer redisMessageListener) {
         this.redisTemplate = redisTemplate;
         this.redisMessageListener = redisMessageListener;
         subscribeToRedisChannel();
@@ -38,45 +44,49 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
      * Redis 채널 구독 설정
      */
     private void subscribeToRedisChannel() {
-        redisMessageListener.addMessageListener(
-            (message, pattern) -> {
+        final MessageListener messageListener = new MessageListener() {
+            @Override
+            public void onMessage(Message message, byte[] pattern) {
                 try {
-                    RedisMessage redisMessage = (RedisMessage) redisTemplate
-                        .getValueSerializer()
-                        .deserialize(message.getBody());
-                    
+                    RedisMessage redisMessage = (RedisMessage) redisTemplate.getValueSerializer()
+                            .deserialize(message.getBody());
                     handleRedisMessage(redisMessage);
                 } catch (Exception e) {
                     logger.error("Redis message processing failed", e);
                 }
-            },
-            new ChannelTopic(REDIS_SSE_CHANNEL)
-        );
+            }
+        };
+        final Topic channelTopic = new ChannelTopic(REDIS_SSE_CHANNEL); //구독(subscribe) 채널 설정
+        redisMessageListener.addMessageListener(messageListener, channelTopic);
     }
 
 
     @Override
     public SseEmitter createEmitter(String clientId) {
         SseEmitter emitter = new SseEmitter(Duration.ofHours(1).toMillis());
-        
+
         emitter.onCompletion(() -> removeClient(clientId));
         emitter.onTimeout(() -> removeClient(clientId));
         emitter.onError(e -> removeClient(clientId));
-        
+
         localEmitters.put(clientId, emitter);
         redisTemplate.opsForSet().add(REDIS_SSE_CLIENTS, clientId);
-        
+
         // 연결 완료 이벤트 전송
         try {
             emitter.send(SseEmitter.event()
-                    .name("connect")
-                    .data("Connected successfully"));
+                    .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
+                    .name("connect")      // 이벤트 이름
+                    .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
+                    .reconnectTime(reconnectTimeMillis) // 재연결 시간
+                    .comment("연결 되었습니다.")       // 주석
+            );
         } catch (Exception e) {
             logger.error("Failed to send initial connection message", e);
             removeClient(clientId);
             return null;
         }
-        
+
         return emitter;
     }
 
@@ -156,8 +166,8 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
      * 로컬에 연결된 모든 클라이언트에게 이벤트 전송
      */
     private void broadcastToLocalClients(SseEvent event) {
-        localEmitters.forEach((clientId, emitter) -> 
-            sendToLocalClient(clientId, event)
+        localEmitters.forEach((clientId, emitter) ->
+                sendToLocalClient(clientId, event)
         );
     }
 
@@ -182,7 +192,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
                 logger.error("Error while shutting down connection for client: {}", clientId, e);
             }
         });
-        
+
         // ExecutorService 종료
         try {
             executorService.shutdown();
@@ -193,13 +203,14 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        
+
         // Redis 리스너 제거
         redisMessageListener.removeMessageListener(
-            (message, pattern) -> {}, 
-            new ChannelTopic(REDIS_SSE_CHANNEL)
+                (message, pattern) -> {
+                },
+                new ChannelTopic(REDIS_SSE_CHANNEL)
         );
-        
+
         // 로컬 저장소 초기화
         localEmitters.clear();
         logger.info("SSE service has been shut down");
