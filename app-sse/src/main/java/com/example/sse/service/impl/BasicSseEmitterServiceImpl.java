@@ -49,12 +49,12 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
         // 연결 완료 이벤트 전송
         try {
             emitter.send(SseEmitter.event()
-                    .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
-                    .name("connect")      // 이벤트 이름
+                            .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
+                            .name("connect")      // 이벤트 이름
 //                    .data("connected Success!")  // 이벤트 데이터
-                    .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
-                    .reconnectTime(reconnectTimeMillis) // 재연결 시간
-                    .comment("Single Server SSE - Connected")       // 주석
+                            .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
+                            .reconnectTime(reconnectTimeMillis) // 재연결 시간
+                            .comment("Single Server SSE - Connected")       // 주석
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to connect send event to client: " + clientId, e);
@@ -97,6 +97,11 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
     }
 
     @Override
+    public int getConnectedClientCount() {
+        return emitters.size();
+    }
+
+    @Override
     public void closeConnection(String clientId) {
         SseEmitter emitter = emitters.get(clientId);
         if (emitter != null) {
@@ -109,11 +114,6 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
                 logger.info("Connection closed for client: {}", clientId);
             }
         }
-    }
-
-    @Override
-    public int getConnectedClientCount() {
-        return emitters.size();
     }
 
     @Override

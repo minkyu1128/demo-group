@@ -104,6 +104,13 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
     }
 
     @Override
+    public int getConnectedClientCount() {
+        // Redis Set에 저장된 전체 클라이언트 수 조회
+        Long totalCount = redisTemplate.opsForSet().size(REDIS_SSE_CLIENTS);
+        return totalCount != null ? totalCount.intValue() : 0;
+    }
+
+    @Override
     public void closeConnection(String clientId) {
         SseEmitter emitter = localEmitters.get(clientId);
         if (emitter != null) {
@@ -119,10 +126,37 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
     }
 
     @Override
-    public int getConnectedClientCount() {
-        // Redis Set에 저장된 전체 클라이언트 수 조회
-        Long totalCount = redisTemplate.opsForSet().size(REDIS_SSE_CLIENTS);
-        return totalCount != null ? totalCount.intValue() : 0;
+    public void shutdown() {
+        // 로컬에 연결된 모든 클라이언트의 연결을 정상적으로 종료
+        localEmitters.forEach((clientId, emitter) -> {
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                logger.error("Error while shutting down connection for client: {}", clientId, e);
+            }
+        });
+
+        // ExecutorService 종료
+        try {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        // Redis 리스너 제거
+        redisMessageListener.removeMessageListener(
+                (message, pattern) -> {
+                },
+                new ChannelTopic(REDIS_SSE_CHANNEL)
+        );
+
+        // 로컬 저장소 초기화
+        localEmitters.clear();
+        logger.info("SSE service has been shut down");
     }
 
     /**
@@ -179,40 +213,4 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
         redisTemplate.opsForSet().remove(REDIS_SSE_CLIENTS, clientId);
         logger.info("Client removed: {}", clientId);
     }
-
-    /**
-     * 서비스 종료 시 정리
-     */
-    public void shutdown() {
-        // 로컬에 연결된 모든 클라이언트의 연결을 정상적으로 종료
-        localEmitters.forEach((clientId, emitter) -> {
-            try {
-                emitter.complete();
-            } catch (Exception e) {
-                logger.error("Error while shutting down connection for client: {}", clientId, e);
-            }
-        });
-
-        // ExecutorService 종료
-        try {
-            executorService.shutdown();
-            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-        // Redis 리스너 제거
-        redisMessageListener.removeMessageListener(
-                (message, pattern) -> {
-                },
-                new ChannelTopic(REDIS_SSE_CHANNEL)
-        );
-
-        // 로컬 저장소 초기화
-        localEmitters.clear();
-        logger.info("SSE service has been shut down");
-    }
-} 
+}

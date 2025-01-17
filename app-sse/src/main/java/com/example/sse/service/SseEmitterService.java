@@ -30,18 +30,18 @@ public interface SseEmitterService {
     void broadcast(SseEvent event);
 
     /**
-     * 특정 클라이언트의 연결을 종료하는 메서드
-     *
-     * @param clientId 종료할 클라이언트 ID
-     */
-    void closeConnection(String clientId);
-
-    /**
      * 현재 연결된 클라이언트 수를 반환하는 메서드
      *
      * @return 연결된 클라이언트 수
      */
     int getConnectedClientCount();
+
+    /**
+     * 특정 클라이언트의 연결을 종료하는 메서드
+     *
+     * @param clientId 종료할 클라이언트 ID
+     */
+    void closeConnection(String clientId);
 
     /**
      * 서비스 종료 시 정리 작업을 수행하는 메서드
