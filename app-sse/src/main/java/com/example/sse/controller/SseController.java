@@ -3,6 +3,7 @@ package com.example.sse.controller;
 import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
 import com.example.sse.service.impl.BasicSseEmitterServiceImpl;
+import com.example.sse.service.impl.RedisSseEmitterServiceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -12,13 +13,20 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * 클라이언트의 SSE 연결 요청 처리 및 이벤트 전송을 담당
  */
 @RestController
-@RequestMapping("/api/v1/sse")
+@RequestMapping(value = {"/api/v1/sse", "/api/v1/sse-{distribute}"})
 public class SseController {
 
-    private final SseEmitterService sseEmitterService;
+    private final SseEmitterService basicSseEmitterService; //단일 서버
+    private final SseEmitterService redisSseEmitterService; //이중화 서버(with Redis)
 
-    public SseController(BasicSseEmitterServiceImpl basicSseEmitterService) {
-        this.sseEmitterService = basicSseEmitterService;
+    public SseController(BasicSseEmitterServiceImpl basicSseEmitterService, RedisSseEmitterServiceImpl redisSseEmitterService) {
+        this.basicSseEmitterService = basicSseEmitterService;
+        this.redisSseEmitterService = redisSseEmitterService;
+    }
+
+    private SseEmitterService getSseEmitterService(String distribute) {
+        if ("redis".equals(distribute)) return redisSseEmitterService;
+        else return basicSseEmitterService;
     }
 
     /**
@@ -28,8 +36,8 @@ public class SseController {
      * @return SSE 연결을 위한 이미터 객체
      */
     @GetMapping(value = "/connect", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter connect(@RequestParam String clientId) {
-        return sseEmitterService.createEmitter(clientId);
+    public SseEmitter connect(@PathVariable(required = false) String distribute, @RequestParam String clientId) {
+        return getSseEmitterService(distribute).createEmitter(clientId);
     }
 
     /**
@@ -39,8 +47,9 @@ public class SseController {
      * @param event    전송할 이벤트 데이터
      */
     @PostMapping("/send/{clientId}")
-    public void sendToClient(@PathVariable String clientId, @RequestBody SseEvent event) {
-        sseEmitterService.sendToClient(clientId, event);
+    public void sendToClient(@PathVariable(required = false) String distribute, @PathVariable String clientId, @RequestBody SseEvent event) {
+        getSseEmitterService(distribute).sendToClient(clientId, event);
+
     }
 
     /**
@@ -49,7 +58,35 @@ public class SseController {
      * @param event 브로드캐스트할 이벤트 데이터
      */
     @PostMapping("/broadcast")
-    public void broadcast(@RequestBody SseEvent event) {
-        sseEmitterService.broadcast(event);
+    public void broadcast(@PathVariable(required = false) String distribute, @RequestBody SseEvent event) {
+        getSseEmitterService(distribute).broadcast(event);
+    }
+
+    /**
+     * 현재 연결된 클라이언트 수를 조회하는 엔드포인트
+     *
+     * @return 연결된 클라이언트 수
+     */
+    @GetMapping("/connected-count")
+    public int getConnectedCount(@PathVariable(required = false) String distribute) {
+        return getSseEmitterService(distribute).getConnectedClientCount();
+    }
+
+    /**
+     * 특정 클라이언트의 SSE 연결을 종료하는 엔드포인트
+     *
+     * @param clientId 종료할 클라이언트의 ID
+     */
+    @PostMapping("/disconnect/{clientId}")
+    public void disconnect(@PathVariable(required = false) String distribute, @PathVariable String clientId) {
+        getSseEmitterService(distribute).closeConnection(clientId);
+    }
+
+    /**
+     * 모든 SSE 연결을 종료하고 서비스를 정리하는 엔드포인트
+     */
+    @PostMapping("/shutdown")
+    public void shutdown(@PathVariable(required = false) String distribute) {
+        getSseEmitterService(distribute).shutdown();
     }
 }

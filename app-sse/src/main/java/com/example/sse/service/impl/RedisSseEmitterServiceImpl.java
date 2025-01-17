@@ -79,7 +79,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
                     .name("connect")      // 이벤트 이름
                     .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
                     .reconnectTime(reconnectTimeMillis) // 재연결 시간
-                    .comment("연결 되었습니다.")       // 주석
+                    .comment("Duplex Server System - Connected")       // 주석
             );
         } catch (Exception e) {
             logger.error("Failed to send initial connection message", e);

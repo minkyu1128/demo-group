@@ -54,7 +54,7 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
 //                    .data("connected Success!")  // 이벤트 데이터
                     .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
                     .reconnectTime(reconnectTimeMillis) // 재연결 시간
-                    .comment("연결 되었습니다.")       // 주석
+                    .comment("Single Server SSE - Connected")       // 주석
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to connect send event to client: " + clientId, e);
