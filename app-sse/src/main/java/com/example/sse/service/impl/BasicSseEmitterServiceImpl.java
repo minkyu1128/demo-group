@@ -25,8 +25,7 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
 
     @Override
     public SseEmitter createEmitter(String clientId) {
-        // 1시간 타임아웃으로 새로운 SSE 이미터 생성
-        SseEmitter emitter = new SseEmitter(Duration.ofHours(1).toMillis());
+        SseEmitter emitter = new SseEmitter(Duration.ofMillis(30).toMillis());  // 타임아웃 시간 설정
 
         // 연결이 완료될 때 실행되는 콜백
         emitter.onCompletion(() -> {

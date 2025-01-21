@@ -1,6 +1,7 @@
 package com.example.sse.config;
 
 import com.example.sse.model.RedisMessage;
+import com.example.sse.model.SseEvent;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
@@ -51,7 +52,21 @@ public class RedisConfig {
         template.setValueSerializer(jsonSerializer);
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(jsonSerializer);
+        return template;
+    }
+    @Bean
+    public RedisTemplate<String, Object> lastEventTemplate(RedisConnectionFactory connectionFactory) {
+        // SseEvent 클래스를 위한 JSON 직렬화 설정
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+        Jackson2JsonRedisSerializer<SseEvent> jsonSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, SseEvent.class);
 
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(jsonSerializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(jsonSerializer);
         return template;
     }
 } 
