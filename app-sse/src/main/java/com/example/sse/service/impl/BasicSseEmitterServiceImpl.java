@@ -24,7 +24,7 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
     private final long reconnectTimeMillis = 10 * 1000L;
 
     @Override
-    public SseEmitter createEmitter(String clientId) {
+    public SseEmitter createEmitter(String clientId, String lastEventId) {
         SseEmitter emitter = new SseEmitter(Duration.ofMillis(30).toMillis());  // 타임아웃 시간 설정
 
         // 연결이 완료될 때 실행되는 콜백

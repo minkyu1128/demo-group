@@ -1,9 +1,11 @@
 package com.example.sse.service.impl;
 
+import com.example.sse.domain.EventProcessor;
+import com.example.sse.domain.ReconnectionHandler;
+import com.example.sse.domain.SseConnectionManager;
 import com.example.sse.model.RedisMessage;
 import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
-import com.example.sse.utils.RequestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.Message;
@@ -12,38 +14,36 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.Topic;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.Duration;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class RedisSseEmitterServiceImpl implements SseEmitterService {
+    private final Logger logger = LoggerFactory.getLogger(RedisSseEmitterServiceImpl.class);
+
     private static final String REDIS_SSE_CHANNEL = "sse:events";
-    private static final String REDIS_SSE_CLIENTS = "sse:clients";
     private static final String REDIS_SSE_LASTEVENT = "sse:lastEvent:events";
 
-    private final ConcurrentHashMap<String, SseEmitter> localEmitters = new ConcurrentHashMap<>();
+    private final SseConnectionManager connectionManager;
+    private final EventProcessor eventProcessor;
+    private final ReconnectionHandler reconnectionHandler;
+
     private final RedisTemplate<String, Object> redisTemplate;
-    private final RedisTemplate<String, Object> lastEventTemplate;
     private final RedisMessageListenerContainer redisMessageListener;
-    private final Logger logger = LoggerFactory.getLogger(RedisSseEmitterServiceImpl.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    private final long reconnectTimeMillis = 10 * 1000L;
 
-    public RedisSseEmitterServiceImpl(RedisTemplate<String, Object> redisTemplate, RedisTemplate<String, Object> lastEventTemplate, RedisMessageListenerContainer redisMessageListener) {
+    public RedisSseEmitterServiceImpl(SseConnectionManager connectionManager, EventProcessor eventProcessor, ReconnectionHandler reconnectionHandler, RedisTemplate<String, Object> redisTemplate, RedisMessageListenerContainer redisMessageListener) {
+        this.connectionManager = connectionManager;
+        this.eventProcessor = eventProcessor;
+        this.reconnectionHandler = reconnectionHandler;
         this.redisTemplate = redisTemplate;
-        this.lastEventTemplate = lastEventTemplate;
         this.redisMessageListener = redisMessageListener;
         subscribeToRedisChannel();
     }
@@ -80,38 +80,43 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
 
 
     @Override
-    public SseEmitter createEmitter(String clientId) {
-        SseEmitter emitter = new SseEmitter(Duration.ofMinutes(30).toMillis());    // 타임아웃 시간 설정
+    public SseEmitter createEmitter(String clientId, String lastEventId) {
+        // 1. 저장소에 클라이언트 연결 추가
+        SseEmitter emitter = connectionManager.createEmitter(clientId);
 
-        emitter.onCompletion(() -> removeClient(clientId));
-        emitter.onTimeout(() -> removeClient(clientId));
-        emitter.onError(e -> removeClient(clientId));
+        // 2. 초기 연결 메시지 전송
+        connectionManager.sendInitialConnection(clientId, emitter);
 
-        localEmitters.put(clientId, emitter);
-        redisTemplate.opsForSet().add(REDIS_SSE_CLIENTS, clientId);
-        // 연결 완료 이벤트 전송
-        try {
-            emitter.send(SseEmitter.event()
-                    .id(clientId + "_" + System.currentTimeMillis())           // 이벤트 ID
-                    .name("connect")      // 이벤트 이름
-                    .data("{\"result\": \"success\"}", MediaType.APPLICATION_JSON)  // 이벤트 데이터
-                    .reconnectTime(reconnectTimeMillis) // 재연결 시간
-                    .comment("Duplex Server System - Connected")       // 주석
-            );
-
-            // 연결 시 마지막 이벤트 이후의 메시지 재전송
-            String lastEventId = RequestUtils.getCurrentHttpRequest().getHeader("Last-Event-ID");
-            if (lastEventId != null) {
-                sendMissedEvents(emitter, clientId, lastEventId);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to send initial connection message", e);
-            removeClient(clientId);
-            return null;
+        // 3. 재연결 처리
+        if (lastEventId != null) {
+            handleReconnection(emitter, clientId, lastEventId);
         }
 
         return emitter;
     }
+
+    /**
+     * 재연결 처리
+     *
+     * @param emitter
+     * @param clientId
+     * @param lastEventId
+     */
+    private void handleReconnection(SseEmitter emitter, String clientId, String lastEventId) {
+        try {
+            //놓친 이벤트 목록 조회
+            Set<String> eventKeys = reconnectionHandler.getStoredEventKeys(REDIS_SSE_LASTEVENT);
+            List<SseEvent> missedEvents = reconnectionHandler.getMissedEvents(eventKeys, lastEventId);
+            //놓친 이벤트 재전송
+            for (SseEvent event : missedEvents) {
+                eventProcessor.handleEvent(emitter, clientId, event);
+            }
+        } catch (Exception e) {
+            logger.error("Reconnection failed for client: {}", clientId, e);
+            connectionManager.removeClient(clientId);
+        }
+    }
+
 
     @Override
     public void sendToClient(String clientId, SseEvent event) {
@@ -129,57 +134,21 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
     @Override
     public int getConnectedClientCount() {
         // Redis Set에 저장된 전체 클라이언트 수 조회
-        Long totalCount = redisTemplate.opsForSet().size(REDIS_SSE_CLIENTS);
+        Long totalCount = connectionManager.getTotalClients();
         return totalCount != null ? totalCount.intValue() : 0;
     }
 
     @Override
     public void closeConnection(String clientId) {
-        SseEmitter emitter = localEmitters.get(clientId);
-        if (emitter != null) {
-            try {
-                emitter.complete();  // 연결 정상 종료
-            } catch (Exception e) {
-                logger.error("Error while closing connection for client: {}", clientId, e);
-            } finally {
-                removeClient(clientId);  // Redis에서도 제거
-                logger.info("Connection closed for client: {}", clientId);
-            }
-        }
+        RedisMessage message = new RedisMessage("CLOSE", clientId, null);
+        redisTemplate.convertAndSend(REDIS_SSE_CHANNEL, message);
     }
 
     @Override
     public void shutdown() {
-        // 로컬에 연결된 모든 클라이언트의 연결을 정상적으로 종료
-        localEmitters.forEach((clientId, emitter) -> {
-            try {
-                emitter.complete();
-            } catch (Exception e) {
-                logger.error("Error while shutting down connection for client: {}", clientId, e);
-            }
-        });
+        RedisMessage message = new RedisMessage("SHUTDOWN", null, null);
+        redisTemplate.convertAndSend(REDIS_SSE_CHANNEL, message);
 
-        // ExecutorService 종료
-        try {
-            executorService.shutdown();
-            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-        // Redis 리스너 제거
-        redisMessageListener.removeMessageListener(
-                (message, pattern) -> {
-                },
-                new ChannelTopic(REDIS_SSE_CHANNEL)
-        );
-
-        // 로컬 저장소 초기화
-        localEmitters.clear();
-        logger.info("SSE service has been shut down");
     }
 
     /**
@@ -189,12 +158,33 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
         // 이벤트를 Redis에 저장 (재연결을 위해)
         final String eventId = message.getEvent().getEvent() + "_" + System.currentTimeMillis();
         message.getEvent().setId(eventId);
-        storeEventInRedis(message.getEvent(), eventId);
+        String eventKey = REDIS_SSE_LASTEVENT + ":" + eventId;
+        reconnectionHandler.storeEvent(message.getEvent(), eventKey);
         //메시지 유형에 따라 전송
         if ("SINGLE".equals(message.getType())) {
             sendToLocalClient(message.getClientId(), message.getEvent());
         } else if ("BROADCAST".equals(message.getType())) {
             broadcastToLocalClients(message.getEvent());
+        } else if ("CLOSE".equals(message.getType())) {
+            connectionManager.close(message.getClientId());
+        } else if ("SHUTDOWN".equals(message.getType())) {
+            connectionManager.shutdown();
+            // ExecutorService 종료
+            try {
+                executorService.shutdown();
+                if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            // Redis 리스너 제거
+            redisMessageListener.removeMessageListener(
+                    (msg, pattern) -> {
+                    },
+                    new ChannelTopic(REDIS_SSE_CHANNEL)
+            );
         }
     }
 
@@ -203,26 +193,21 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
      * 로컬 클라이언트에게 이벤트 전송
      */
     private void sendToLocalClient(String clientId, SseEvent event) {
-        SseEmitter emitter = localEmitters.get(clientId);
+        SseEmitter emitter = connectionManager.getLocalEmitter(clientId);
         if (emitter != null) {
-            try {
-                executorService.execute(() -> {
-                    try {
-                        // 이벤트 전송
-                        emitter.send(SseEmitter.event()
-                                .id(event.getId())
-                                .name(event.getEvent())
-                                .data(event.getData(), MediaType.APPLICATION_JSON)
-                                .reconnectTime(event.getRetry() != null ? event.getRetry() : reconnectTimeMillis));
-                    } catch (Exception e) {
-                        logger.error("Failed to send event to client: {}", clientId, e);
-                        removeClient(clientId);
-                    }
-                });
-            } catch (Exception e) {
-                logger.error("Failed to execute send task for client: {}", clientId, e);
-                removeClient(clientId);
-            }
+//            try {
+            executorService.execute(() -> {
+                try {
+                    eventProcessor.handleEvent(emitter, clientId, event);
+                } catch (Exception e) {
+                    logger.error("Failed to send event to client: {}", clientId, e);
+                    connectionManager.removeClient(clientId);
+                }
+            });
+//            } catch (Exception e) {
+//                logger.error("Failed to execute send task for client: {}", clientId, e);
+//                connectionManager.removeClient(clientId);
+//            }
         }
     }
 
@@ -230,82 +215,10 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
      * 로컬에 연결된 모든 클라이언트에게 이벤트 전송
      */
     private void broadcastToLocalClients(SseEvent event) {
-        localEmitters.forEach((clientId, emitter) ->
+        connectionManager.getLocalEmitterALL().forEach((clientId, emitter) ->
                 sendToLocalClient(clientId, event)
         );
     }
 
-    /**
-     * 클라이언트 제거
-     */
-    private void removeClient(String clientId) {
-        localEmitters.remove(clientId);
-        redisTemplate.opsForSet().remove(REDIS_SSE_CLIENTS, clientId);
-        logger.info("Client removed: {}", clientId);
-    }
-
-    /**
-     * Redis에 이벤트 저장을 위한 메서드 추가
-     */
-    private void storeEventInRedis(SseEvent event, String eventID) {
-        String eventKey = REDIS_SSE_LASTEVENT + ":" + eventID;
-        lastEventTemplate.opsForValue().set(eventKey, event, Duration.ofMinutes(15));  // 15분 동안 유지
-    }
-    /**
-     * 놓친 이벤트 재전송
-     */
-    private void sendMissedEvents(SseEmitter emitter, String clientId, String lastEventId) {
-        try {
-            // 마지막 이벤트 시간 추출
-            long lastEventTime = extractEventTime(lastEventId);
-            String eventsPattern = REDIS_SSE_LASTEVENT + ":*";
-
-            // Redis에서 이벤트 히스토리 조회
-            Set<String> eventKeys = redisTemplate.keys(eventsPattern);
-            if (eventKeys != null && !eventKeys.isEmpty()) {
-                List<SseEvent> missedEvents = eventKeys.stream()
-                        .map(key -> (SseEvent) lastEventTemplate.opsForValue().get(key))
-                        .filter(event -> event != null && extractEventTime(event.getId()) > lastEventTime)
-                        .sorted(Comparator.comparingLong(event -> extractEventTime(event.getId())))
-                        .collect(Collectors.toList());
-
-                // 놓친 이벤트 재전송
-                for (SseEvent event : missedEvents) {
-                    try {
-                        emitter.send(SseEmitter.event()
-                                .id(event.getId())
-                                .name(event.getEvent())
-                                .data(event.getData(), MediaType.APPLICATION_JSON)
-                                .reconnectTime(reconnectTimeMillis));
-
-                        // 재전송 로깅
-                        logger.info("Resent missed event {} to client {}", event.getId(), clientId);
-                    } catch (Exception e) {
-                        logger.error("Failed to resend missed event {} to client {}", event.getId(), clientId, e);
-                        throw e;
-                    }
-                }
-
-                logger.info("Resent {} missed events to client {}", missedEvents.size(), clientId);
-            }
-        } catch (Exception e) {
-            logger.error("Error processing missed events for client {}", clientId, e);
-            removeClient(clientId);
-        }
-    }
-
-    /**
-     * 이벤트 ID에서 이벤트 시간 추출
-     */
-    private long extractEventTime(String eventId) {
-        try {
-            // eventId 형식: clientId_timestamp 또는 timestamp
-            String[] parts = eventId.split("_");
-            return Long.parseLong(parts[parts.length - 1]);
-        } catch (Exception e) {
-            logger.error("Failed to parse event time from ID: {}", eventId);
-            return 0L;
-        }
-    }
 
 }

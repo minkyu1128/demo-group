@@ -32,12 +32,14 @@ public class SseController {
     /**
      * 클라이언트의 SSE 연결 요청을 처리하는 엔드포인트
      *
-     * @param clientId 연결을 요청한 클라이언트의 고유 식별자
+     * @param lastEventId 이전 이벤트 ID
+     * @param clientId    연결을 요청한 클라이언트의 고유 식별자
      * @return SSE 연결을 위한 이미터 객체
      */
     @GetMapping(value = "/connect", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter connect(@PathVariable(required = false) String messageBroker, @RequestParam String clientId) {
-        return getSseEmitterService(messageBroker).createEmitter(clientId);
+    public SseEmitter connect(@RequestHeader(required = false, name = "Last-Event-ID") String lastEventId,
+                              @PathVariable(required = false) String messageBroker, @RequestParam String clientId) {
+        return getSseEmitterService(messageBroker).createEmitter(clientId, lastEventId);
     }
 
     /**

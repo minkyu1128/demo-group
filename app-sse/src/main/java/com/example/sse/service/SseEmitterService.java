@@ -11,7 +11,7 @@ public interface SseEmitterService {
      * @return 생성된 SSE 이미터
      * @throws IllegalArgumentException 클라이언트 ID가 유효하지 않은 경우
      */
-    SseEmitter createEmitter(String clientId);
+    SseEmitter createEmitter(String clientId, String lastEventId);
 
     /**
      * 특정 클라이언트에게 이벤트를 전송하는 메서드
