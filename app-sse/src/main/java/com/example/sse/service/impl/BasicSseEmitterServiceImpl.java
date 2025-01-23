@@ -74,7 +74,8 @@ public class BasicSseEmitterServiceImpl implements SseEmitterService {
         try {
             // 이벤트 전송 설정 및 실행
             emitter.send(SseEmitter.event()
-                    .id(event.getId())           // 이벤트 ID
+//                    .id(event.getId())           // 이벤트 ID
+                    .id(event.getEvent() + "_" + System.currentTimeMillis())           // 이벤트 ID
                     .name(event.getEvent())      // 이벤트 이름
                     .data(event.getData())       // 이벤트 데이터
                     .reconnectTime(event.getRetry() != null ? event.getRetry() : reconnectTimeMillis)); // 재연결 시간

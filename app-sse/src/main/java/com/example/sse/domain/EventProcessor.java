@@ -25,7 +25,7 @@ public class EventProcessor {
                     .reconnectTime(event.getRetry() != null ? event.getRetry() : 10 * 1000L));
         } catch (IOException e) {
 //            throw new SseEventProcessingException("Failed to send event", e);
-            throw new RuntimeException("Failed to send event", e);
+            throw new RuntimeException("Failed to send event for Client: {" + clientId + "}", e);
 
         }
     }

@@ -68,7 +68,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
                 try {
                     RedisMessage redisMessage = (RedisMessage) redisTemplate.getValueSerializer()
                             .deserialize(message.getBody());
-                    handleRedisMessage(redisMessage);
+                    handleMessage(redisMessage);
                 } catch (Exception e) {
                     logger.error("Redis message processing failed", e);
                 }
@@ -89,7 +89,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
 
         // 3. 재연결 처리
         if (lastEventId != null) {
-            handleReconnection(emitter, clientId, lastEventId);
+            sendMissedEvents(emitter, clientId, lastEventId);
         }
 
         return emitter;
@@ -102,7 +102,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
      * @param clientId
      * @param lastEventId
      */
-    private void handleReconnection(SseEmitter emitter, String clientId, String lastEventId) {
+    private void sendMissedEvents(SseEmitter emitter, String clientId, String lastEventId) {
         try {
             //놓친 이벤트 목록 조회
             Set<String> eventKeys = reconnectionHandler.getStoredEventKeys(REDIS_SSE_LASTEVENT);
@@ -120,6 +120,7 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
 
     @Override
     public void sendToClient(String clientId, SseEvent event) {
+        generateEventID(event);
         RedisMessage message = new RedisMessage("SINGLE", clientId, event);
         redisTemplate.convertAndSend(REDIS_SSE_CHANNEL, message);
     }
@@ -127,9 +128,11 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
 
     @Override
     public void broadcast(SseEvent event) {
+        generateEventID(event);
         RedisMessage message = new RedisMessage("BROADCAST", null, event);
         redisTemplate.convertAndSend(REDIS_SSE_CHANNEL, message);
     }
+
 
     @Override
     public int getConnectedClientCount() {
@@ -152,23 +155,32 @@ public class RedisSseEmitterServiceImpl implements SseEmitterService {
     }
 
     /**
-     * Redis 메시지 처리
+     * 이벤트 ID 생성
      */
-    private void handleRedisMessage(RedisMessage message) {
-        // 이벤트를 Redis에 저장 (재연결을 위해)
-        final String eventId = message.getEvent().getEvent() + "_" + System.currentTimeMillis();
-        message.getEvent().setId(eventId);
-        String eventKey = REDIS_SSE_LASTEVENT + ":" + eventId;
-        reconnectionHandler.storeEvent(message.getEvent(), eventKey);
+    private void generateEventID(SseEvent event) {
+        final String eventId = event.getEvent() + "_" + System.currentTimeMillis();
+        event.setId(eventId);
+    }
+
+    /**
+     * 메시지 처리
+     */
+    private void handleMessage(RedisMessage message) {
+        String eventKey = REDIS_SSE_LASTEVENT + ":" + message.getEvent().getId();
         //메시지 유형에 따라 전송
         if ("SINGLE".equals(message.getType())) {
             sendToLocalClient(message.getClientId(), message.getEvent());
+            reconnectionHandler.storeEvent(message.getEvent(), eventKey);
         } else if ("BROADCAST".equals(message.getType())) {
             broadcastToLocalClients(message.getEvent());
+            reconnectionHandler.storeEvent(message.getEvent(), eventKey);
         } else if ("CLOSE".equals(message.getType())) {
             connectionManager.close(message.getClientId());
         } else if ("SHUTDOWN".equals(message.getType())) {
             connectionManager.shutdown();
+            // -------------------------------------------------------------------------------------------
+            // shutdown 시 Subscribe 해제 되어 이벤트 수신 불가. shutdown 이후 재수신을 원할 경우 추가 구현 필요
+            //-------------------------------------------------------------------------------------------
             // ExecutorService 종료
             try {
                 executorService.shutdown();
