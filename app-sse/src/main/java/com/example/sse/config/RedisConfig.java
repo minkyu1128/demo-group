@@ -48,8 +48,10 @@ public class RedisConfig {
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
+        // 기본 직렬화 설정 - Streams 도 ValueSerializer 로 동작
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(jsonSerializer);
+        // Pub/Sub 메시지를 위한 해시 키/값 직렬화 설정
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(jsonSerializer);
         return template;

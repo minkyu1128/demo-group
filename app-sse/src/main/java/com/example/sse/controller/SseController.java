@@ -3,6 +3,7 @@ package com.example.sse.controller;
 import com.example.sse.model.SseEvent;
 import com.example.sse.service.SseEmitterService;
 import com.example.sse.service.impl.BasicSseEmitterServiceImpl;
+import com.example.sse.service.impl.InMemoryStreamEmitterServiceImpl;
 import com.example.sse.service.impl.RedisSseEmitterServiceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -18,14 +19,18 @@ public class SseController {
 
     private final SseEmitterService basicSseEmitterService; //단일 서버
     private final SseEmitterService redisSseEmitterService; //이중화 서버(with Redis)
+    private final SseEmitterService inMemoryStreamEmitterService; //단일 서버
 
-    public SseController(BasicSseEmitterServiceImpl basicSseEmitterService, RedisSseEmitterServiceImpl redisSseEmitterService) {
+    public SseController(BasicSseEmitterServiceImpl basicSseEmitterService, RedisSseEmitterServiceImpl redisSseEmitterService, InMemoryStreamEmitterServiceImpl inMemoryStreamEmitterService) {
         this.basicSseEmitterService = basicSseEmitterService;
         this.redisSseEmitterService = redisSseEmitterService;
+        this.inMemoryStreamEmitterService = inMemoryStreamEmitterService;
     }
 
     private SseEmitterService getSseEmitterService(String messageBroker) {
         if ("redis".equals(messageBroker)) return redisSseEmitterService;
+//        if ("redis-stream".equals(messageBroker)) return ;
+        if ("stream".equals(messageBroker)) return inMemoryStreamEmitterService;
         else return basicSseEmitterService;
     }
 
