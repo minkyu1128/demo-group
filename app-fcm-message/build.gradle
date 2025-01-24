@@ -1,0 +1,15 @@
+bootJar {
+    enabled = true  // JAR 파일 생성 활성화
+}
+
+dependencies {
+    // 공통 모듈 의존성
+    implementation project(':module-common')
+    // Spring Web 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+}
+
+// JUnit 플랫폼 사용 설정
+test {
+    useJUnitPlatform()
+}
