@@ -7,6 +7,8 @@ dependencies {
     implementation project(':module-common')
     // Spring Web 의존성
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Firebase Admin SDK 의존성
+    implementation 'com.google.firebase:firebase-admin:9.4.3'
 }
 
 // JUnit 플랫폼 사용 설정

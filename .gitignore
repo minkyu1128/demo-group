@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### FCM 비공개 키 파일 ###
+**/src/main/resources/fcm-key/
