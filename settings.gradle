@@ -2,5 +2,5 @@ rootProject.name = 'examples-backend-features'
 include 'app-sso'
 include 'module-common'
 include 'app-sse'
-include 'app-fcm-message'
+include 'app-fcm'
 

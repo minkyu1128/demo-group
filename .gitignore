@@ -37,4 +37,4 @@ out/
 .vscode/
 
 ### FCM 비공개 키 파일 ###
-**/src/main/resources/fcm-key/
+**/src/main/resources/fcm-key/firebase-adminsdk.json

@@ -1,4 +1,4 @@
-package com.example.fcmmessage;
+package com.example.fcm;
 
 
 import org.springframework.boot.SpringApplication;

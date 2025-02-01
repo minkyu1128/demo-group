@@ -1,4 +1,4 @@
-package com.example.fcmmessage.controller;
+package com.example.fcm.controller;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
