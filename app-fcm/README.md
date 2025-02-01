@@ -86,8 +86,58 @@ public class FcmConfig {
 ```
 
 ### 2.3 서버에서 FCM 메시지 보내기
+메시지를 전송하는 방법은 다음과 같으며, 스니펫은 링크를 참고하시길 바랍니다. 
+- [특정 기기에 메시지 전송](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#send-messages-to-specific-devices) - client의 token 기반으로 메시지를 발행 합니다.
+- [여러 기기에 메시지 전송](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#send-messages-to-multiple-devices) - client의 token 목록을 기반으로 메시지를 발행 합니다. 
+- [주제(Topic)로 메시지 전송](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#send-messages-to-topics) - topic 기반으로 메시지를 발행 합니다.
+- [기기 그룹에 메시지 전송](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#send-messages-to-device-groups)
+
+메시지 필드는 플랫폼(Android, iOS, 웹)의 `공통 필드`와 `플랫폼별 필드` 가 있으며,    
+플랫폼별 필드를 사용해 [플랫폼에 맞게 맞춤 설정](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#customize-messages-across-platforms)이 가능 합니다.   
+플랫폼별 블록에서 제공하는 키에 관한 자세한 내용은 [HTTP v1 참조 문서](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages?hl=ko&_gl=1*1xmtpjp*_up*MQ..*_ga*NDM4NjI0MjY5LjE3MzgzODg2MTM.*_ga_CW55HF8NVT*MTczODM4ODYxMi4xLjAuMTczODM4ODYxMi4wLjAuMA..#resource:-message)에서 확인 하세요.
+
+``` json
+[ 공통 필드 ]
+message.notification.title
+message.notification.body
+message.data
+[ 플랫폼별 필드 ]
+message.android   //안드로이드
+message.webpush   //Web
+message.apns      //Apple
+```
+
+서버에서 클라이언트의 Topic 구독과 취소를 관리 할 수 있으며, 주제(Topic) 메시지 전송을 사용 할 경우 유용하게 활용 할 수 있습니다.   
+자세한 내용과 스니펫은 [서버 Topic 관리](https://firebase.google.com/docs/cloud-messaging/manage-topics?hl=ko&_gl=1*1kg8otd*_up*MQ..*_ga*MTA3NTAxODI2My4xNzM4Mzk3NTkw*_ga_CW55HF8NVT*MTczODM5NzU5MC4xLjAuMTczODM5NzU5MC4wLjAuMA..) 문서에서 확인 할 수 있습니다. 
 
 ### 2.4 클라이언트에서 FCM 메시지 수신하기
+
+먼저 앱을 생성하기 위해 [계정 생성](https://console.firebase.google.com/u/0/project/_/settings/serviceaccounts/adminsdk?hl=ko&_gl=1*62ca0n*_up*MQ..*_ga*ODM1ODkwNTYwLjE3MzgyODY4NTI.*_ga_CW55HF8NVT*MTczODI4Njg1Mi4xLjAuMTczODI4Njg1Mi4wLjAuMA..) 에 접속해 프로젝트>일반 페이지에서 "앱 생성"을 진행 합니다.   
+본 예제는 WebApp 으로 생성 했습니다.
+
+![img_1.png](img_1.png)
+
+앱 생성이 완료되면 다음과 같이 친절한 스니펫을 확인 할 수 있습니다.
+![img_3.png](img_3.png)
+
+이후 "Firebase 호스팅 사이트에 연결" 버튼을 클릭해 호스팅을 생성하도록 합니다.
+![img_4.png](img_4.png)
+
+다음 커맨드는 프로젝트 디렉터리를 생성할 **Root 경로에서 진행**하시길 권장 드립니다.    
+프로젝트 생성 단계에서 나열되는 목록 중 **"( ) Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action deploys
+"** 를 선택 하도록 합니다.
+```shell
+1) Firebase CLI 설치
+  $ npm install -g firebase-tools
+2) 프로젝트 초기화
+  $ firebase login  //로그인. 웹브라우저에서 구글 계정으로 로그인이 진행 됩니다.
+  $ firebase init   //프로젝트 생성. 
+3) 호이스팅에 배포
+  $ firebase deploy //나열되는 프로젝트 목록 중 배포할 프로젝트를 선택 합니다.
+``` 
+배포까지 성공하면 다음 링크를 통해 배포된 페이지를 확인 할 수 있습니다.
+![img_5.png](img_5.png) ![img_6.png](img_6.png)
+
 
 ### 2.5 클라이언트에서 FCM 메시지 응답하기
 
