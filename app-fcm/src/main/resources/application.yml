@@ -1,0 +1,6 @@
+server:
+  port: 48082
+
+spring:
+  application:
+    name: app-fcm

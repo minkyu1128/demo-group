@@ -25,6 +25,10 @@ public class MulticastMessageSender implements FcmSendService {
         );
 
         MulticastMessage message = MulticastMessage.builder()
+                .setNotification(Notification.builder()
+                        .setTitle("Multicast Push Message")
+                        .setBody("FCM을 이용한 Multicast Push 메시지 입니다!")
+                        .build())
                 .putData("score", "850")
                 .putData("time", "2:45")
                 .addAllTokens(registrationTokens)
