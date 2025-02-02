@@ -4,3 +4,13 @@ server:
 spring:
   application:
     name: app-fcm
+
+  # Thymeleaf 설정
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML5
+    cache: false
+  devtools:
+    restart:
+      enabled: true

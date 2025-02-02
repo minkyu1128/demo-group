@@ -9,6 +9,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // Firebase Admin SDK 의존성
     implementation 'com.google.firebase:firebase-admin:9.4.3'
+    // Thymeleaf (프론트엔드 템플릿 엔진)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools' //live reload
 }
 
 // JUnit 플랫폼 사용 설정
