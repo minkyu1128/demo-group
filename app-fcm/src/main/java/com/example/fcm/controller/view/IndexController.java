@@ -1,4 +1,4 @@
-package com.example.fcm.controller;
+package com.example.fcm.controller.view;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -6,11 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class IndexController {
-    @GetMapping( value = {""})
+    @GetMapping(value = {""})
     public String init() {
         return "redirect:/index";
     }
-    @GetMapping( value = {"/index"})
+
+    @GetMapping(value = {"/index"})
     public String index() {
         return "index";
     }
