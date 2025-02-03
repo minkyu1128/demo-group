@@ -100,7 +100,7 @@ public class FcmConfig {
 
 메시지 필드는 플랫폼(Android, iOS, 웹)의 `공통 필드`와 `플랫폼별 필드` 가 있으며,    
 플랫폼별 필드를
-사용해 [플랫폼에 맞게 맞춤 설정](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#customize-messages-across-platforms)
+사용해 [플랫폼에 맞게 맞춤 설정](https://firebase.google.com/docs/cloud-messaging/send-message?hl=ko#customize-messages-across-platforms) ( [API 링크](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages?hl=ko&_gl=1*td1qlq*_up*MQ..*_ga*MTU2NTcxODIxMS4xNzM4NTQ1MTQ0*_ga_CW55HF8NVT*MTczODU0NTE0My4xLjAuMTczODU0NTE0My4wLjAuMA..#Message) )
 이 가능 합니다.   
 플랫폼별 블록에서 제공하는 키에 관한 자세한
 내용은 [HTTP v1 참조 문서](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages?hl=ko&_gl=1*1xmtpjp*_up*MQ..*_ga*NDM4NjI0MjY5LjE3MzgzODg2MTM.*_ga_CW55HF8NVT*MTczODM4ODYxMi4xLjAuMTczODM4ODYxMi4wLjAuMA..#resource:-message)

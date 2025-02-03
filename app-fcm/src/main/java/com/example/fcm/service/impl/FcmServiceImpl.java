@@ -27,17 +27,17 @@ public class FcmServiceImpl implements FcmService {
                         .build())
                 .putAllData(request.getData())
                 .setToken(registrationToken)    // 토큰 설정
-                .setWebpushConfig(WebpushConfig.builder()
-                        .setNotification(WebpushNotification.builder()
-//                                .setTitle(request.getTitle()) //설정 시 Notification의 title은 무시됨
-//                                .setBody(request.getBody())   //설정 시 Notification의 body는 무시됨
-                                .setDirection(WebpushNotification.Direction.LEFT_TO_RIGHT)
-                                .setIcon(request.getWebPushConfig().getIcon())
-                                .build())
-                        .setFcmOptions(WebpushFcmOptions.builder()
-                                .setLink(request.getWebPushConfig().getLink())
-                                .build())
-                        .build())
+//                .setWebpushConfig(WebpushConfig.builder()
+//                        .setNotification(WebpushNotification.builder()
+////                                .setTitle(request.getTitle()) //설정 시 Notification의 title은 무시됨
+////                                .setBody(request.getBody())   //설정 시 Notification의 body는 무시됨
+//                                .setDirection(WebpushNotification.Direction.LEFT_TO_RIGHT)
+//                                .setIcon(request.getWebPushConfig().getIcon())
+//                                .build())
+//                        .setFcmOptions(WebpushFcmOptions.builder()
+//                                .setLink(request.getWebPushConfig().getLink())
+//                                .build())
+//                        .build())
                 .build();
 
         sendMessage(message, registrationToken);
@@ -55,17 +55,7 @@ public class FcmServiceImpl implements FcmService {
                                 .setTitle(request.getTitle())
                                 .setBody(request.getBody())
                                 .build())
-                        .setWebpushConfig(WebpushConfig.builder()
-                                .setNotification(WebpushNotification.builder()
-//                                .setTitle(request.getTitle()) //설정 시 Notification의 title은 무시됨
-//                                .setBody(request.getBody())   //설정 시 Notification의 body는 무시됨
-                                        .setDirection(WebpushNotification.Direction.LEFT_TO_RIGHT)
-                                        .setIcon(request.getWebPushConfig().getIcon())
-                                        .build())
-                                .setFcmOptions(WebpushFcmOptions.builder()
-                                        .setLink(request.getWebPushConfig().getLink())
-                                        .build())
-                                .build())
+                        .putAllData(request.getData())
                         .build())
                 .collect(Collectors.toList());
 
@@ -79,18 +69,8 @@ public class FcmServiceImpl implements FcmService {
                         .setBody(request.getBody())
                         .build())
                 .putAllData(request.getData())
+                .putData("topic", topic)
                 .setTopic(topic)    //토픽 설정
-                .setWebpushConfig(WebpushConfig.builder()
-                        .setNotification(WebpushNotification.builder()
-//                                .setTitle(request.getTitle()) //설정 시 Notification의 title은 무시됨
-//                                .setBody(request.getBody())   //설정 시 Notification의 body는 무시됨
-                                .setDirection(WebpushNotification.Direction.LEFT_TO_RIGHT)
-                                .setIcon(request.getWebPushConfig().getIcon())
-                                .build())
-                        .setFcmOptions(WebpushFcmOptions.builder()
-                                .setLink(request.getWebPushConfig().getLink())
-                                .build())
-                        .build())
                 .build();
 
         sendMessage(message, (FcmSendExceptionHandler) null);
