@@ -1,6 +1,5 @@
-package com.example.fcm.service.impl;
+package com.example.fcm.service.sample;
 
-import com.example.fcm.service.FcmSendService;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -8,27 +7,27 @@ import com.google.firebase.messaging.Notification;
 import org.springframework.stereotype.Service;
 
 @Service
-public class TargetMessageSender implements FcmSendService {
+public class TopicMessageSender implements FcmSender {
 
     @Override
     public void send() throws FirebaseMessagingException {
-        // This registration token comes from the client FCM SDKs.
-        String registrationToken = "YOUR_REGISTRATION_TOKEN";
+        // The topic name can be optionally prefixed with "/topics/".
+        String topic = "highScores";
 
         // See documentation on defining a message payload.
         Message message = Message.builder()
                 .setNotification(Notification.builder()
-                        .setTitle("Target Push Message")
-                        .setBody("FCM을 이용한 Target Push 메시지 입니다!")
+                        .setTitle("Topic Push Message")
+                        .setBody("FCM을 이용한 Topic Push 메시지 입니다!")
                         .build())
                 .putData("score", "850")
                 .putData("time", "2:45")
-                .setToken(registrationToken)
+                .setTopic(topic)
                 .build();
 
-        // Send a message to the device corresponding to the provided
-        // registration token.
+        // Send a message to the devices subscribed to the provided topic.
         String response = FirebaseMessaging.getInstance().send(message);
+
         // Response is a message ID string.
         System.out.println("Successfully sent message: " + response);
     }

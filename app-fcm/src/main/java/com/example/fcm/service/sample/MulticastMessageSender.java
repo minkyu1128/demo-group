@@ -1,6 +1,5 @@
-package com.example.fcm.service.impl;
+package com.example.fcm.service.sample;
 
-import com.example.fcm.service.FcmSendService;
 import com.google.firebase.messaging.*;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +12,8 @@ import java.util.stream.Collectors;
  * 여러 기기에 메시지 전송
  */
 @Service
-public class MulticastMessageSender implements FcmSendService {
+public class MulticastMessageSender implements FcmSender {
+
     @Override
     public void send() throws FirebaseMessagingException {
         List<String> registrationTokens = Arrays.asList(
@@ -46,9 +46,9 @@ public class MulticastMessageSender implements FcmSendService {
                 for (int i = 0; i < responses.size(); i++) {
                     if (!responses.get(i).isSuccessful()) {
                         failedTokens.add(registrationTokens.get(i));
+
                         // 실패 원인 로깅 추가
-                        System.out.println("Error for token " + registrationTokens.get(i) +
-                                ": " + responses.get(i).getException().getMessage());
+                        System.out.println("Error for token " + registrationTokens.get(i) + ": " + responses.get(i).getException().getMessage());
                     }
                 }
 

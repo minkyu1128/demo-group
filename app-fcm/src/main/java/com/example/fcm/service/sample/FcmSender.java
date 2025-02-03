@@ -1,7 +1,7 @@
-package com.example.fcm.service;
+package com.example.fcm.service.sample;
 
 import com.google.firebase.messaging.FirebaseMessagingException;
 
-public interface FcmSendService {
+public interface FcmSender {
     void send() throws FirebaseMessagingException;
 }
