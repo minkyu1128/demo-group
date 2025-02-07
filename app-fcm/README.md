@@ -4,7 +4,7 @@ Firebase Cloud Messaging의 약자로 구글에서 제공하는 메시징 서비
 FCM은 서버에서 클라이언트로 안정적으로 메시지를 전달 할 수 있도록 도와주는 서비스입니다.
 ![img_7.png](img_7.png)
 
-## 1. 구현 해보기
+## 1. FCM 알아보기
 
 ### 1.1 FCM 메시지 흐름
 
@@ -125,8 +125,8 @@ message.apns      //Apple
 ### 2.4 FCM 클라이언트 설정
 
 메시지를 수신하기 위해서 클라이언트 설정이 선행 되어야 하며, FCM을 웹에서 사용 할 경우 `HTTPS 연결이 필수`로 요구 됩니다.   
-개발 환경에서 localhost 는 HTTP 를 사용할 수 있도록 예외를 두고 있지만, 이번 실습에서는 Https를 무료로 기본 제공해주는 firebase Host를 사용해 진행 해보고자 합니다.   
-     
+개발 환경에서 localhost 는 HTTP 를 사용할 수 있도록 예외를 두고 있지만, 이번 실습에서는 Https를 무료로 기본 제공해주는 firebase Host를 사용해 진행 해보고자 합니다.
+
 `앱 생성 > 웹 푸시 인증서 키 쌍(key pair)생성 > firebase 앱 초기화 > 토큰 생성 > 메시지 수신 설정` 순으로 진행 합니다.   
 관련
 문서는 [클라이언트 설정(웹 앱)](https://firebase.google.com/docs/cloud-messaging/js/client?hl=ko&_gl=1*2msja3*_up*MQ..*_ga*MjgyOTIxNTE1LjE3Mzg0MTg5OTk.*_ga_CW55HF8NVT*MTczODQyODM3Ny4yLjAuMTczODQyODM3Ny4wLjAuMA..)
@@ -147,9 +147,8 @@ message.apns      //Apple
 ![img_4.png](img_4.png)
 
 다음 커맨드는 프로젝트 디렉터리를 생성할 **Root 경로에서 진행**하시길 권장 드립니다.    
-프로젝트 생성 단계에서 나열되는 목록 중 **"( ) Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action
-deploys
-"** 를 선택 하도록 합니다.
+프로젝트 생성 단계에서 나열되는 목록 중     
+**"( ) Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action deploys"** 를 선택 하도록 합니다.
 
 ```shell
 1) Firebase CLI 설치
@@ -162,6 +161,7 @@ deploys
 ``` 
 
 배포까지 성공하면 다음 링크를 통해 배포된 페이지를 확인 할 수 있습니다.
+
 ![img_5.png](img_5.png) ![img_6.png](img_6.png)
 
 ### 2.5 클라이언트에서 FCM 메시지 수신하기
@@ -180,9 +180,13 @@ firebase 에서는 수신 방법에 따라 `onMessage` 와 `onBackgroundMessage`
 는 [Messaging API reference 문서](https://firebase.google.com/docs/reference/js/messaging_.md?authuser=0&hl=ko&_gl=1*rhfyhf*_up*MQ..*_ga*MjgyOTIxNTE1LjE3Mzg0MTg5OTk.*_ga_CW55HF8NVT*MTczODQ3MTk4MC43LjEuMTczODQ3MjA4Ni4wLjAuMA..#gettoken_b538f38)
 에서 확인 하실 수 있습니다.
 
-public path에 html 페이지를 하나 만들고 다음 순으로 진행 합니다
+**FCM 수신을 위해 public 디렉토리에 html 페이지를 만들고 아래 순서를 따라 진행 합니다.**
 
 **1) firebase 앱 초기화**
+
+```html
+
+
 
 firebaseConfig 정보는 앞서 생성한 앱의 SDK 설정 및 구성 스니펫에서 확인 하시기 바랍니다.
 
@@ -191,16 +195,17 @@ firebaseConfig 정보는 앞서 생성한 앱의 SDK 설정 및 구성 스니펫
     import {initializeApp} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
     import {getAnalytics} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-analytics.js";
     import {getMessaging, deleteToken, getToken, onMessage} from
-    "https://www.gstatic.com/firebasejs/11.2.0/firebase-messaging.js";
+                "https://www.gstatic.com/firebasejs/11.2.0/firebase-messaging.js";
+
     const firebaseConfig = {
-    apiKey: "AIzaSyBeN6Z6tKcgx208Dd94yovWgYT9JLwVnZk",
-    authDomain: "fir-17abf.firebaseapp.com",
-    projectId: "fir-17abf",
-    storageBucket: "fir-17abf.firebasestorage.app",
-    messagingSenderId: "968604268680",
-    appId: "1:968604268680:web:372a91794c18cd80da073d",
-    measurementId: "G-758XGRLK6L"
-};
+        apiKey: "AIzaSyBeN6Z6tKcgx208Dd94yovWgYT9JLwVnZk",
+        authDomain: "fir-17abf.firebaseapp.com",
+        projectId: "fir-17abf",
+        storageBucket: "fir-17abf.firebasestorage.app",
+        messagingSenderId: "968604268680",
+        appId: "1:968604268680:web:372a91794c18cd80da073d",
+        measurementId: "G-758XGRLK6L"
+    };
     // Firebase 초기화
     const firebaseApp = initializeApp(firebaseConfig);
     const analytics = getAnalytics(firebaseApp);
@@ -260,19 +265,19 @@ token 을 발행하려면 vapiKey 값이 필요한데 [서비스 계정 생성 >
     // ...
     getToken(messaging, {vapidKey: '<웹 푸시 인증서 키 쌍>'})
     .then((currentToken) => {
-        if (currentToken) {
-            // 필요한 경우 토큰을 서버로 전송하고 UI를 업데이트하세요
-            console.log(`현재 토큰은 [${currentToken}] 입니다`);
-            // ...
-        } else {
-            // 권한 요청 UI 표시
-            console.log('사용 가능한 등록 토큰이 없습니다. 토큰 생성을 위한 권한을 요청하세요.');
-            // ...
-        }
-    }).catch((err) => {
-        console.log('토큰을 가져오는 중 오류가 발생했습니다. ', err);
-        // ...
-    });
+    if (currentToken) {
+    // 필요한 경우 토큰을 서버로 전송하고 UI를 업데이트하세요
+    console.log(`현재 토큰은 [${currentToken}] 입니다`);
+    // ...
+} else {
+    // 권한 요청 UI 표시
+    console.log('사용 가능한 등록 토큰이 없습니다. 토큰 생성을 위한 권한을 요청하세요.');
+    // ...
+}
+}).catch((err) => {
+    console.log('토큰을 가져오는 중 오류가 발생했습니다. ', err);
+    // ...
+});
 </script>
 ```
 
@@ -281,44 +286,71 @@ token 을 발행하려면 vapiKey 값이 필요한데 [서비스 계정 생성 >
 
 ```javascript
 <script type="module">
-    // ...
+    // ...z
     //토큰 무효화
     deleteToken(messaging);
 </script>
 ```
 
 **3) 메시지 수신**   
-포그라운드 메시지 수신은 onMessage 함수를 사용 합니다.   
-구독 인스턴스에서 메시지를 발행하면 onMessage 가 실행 됩니다.
+포그라운드(foreground) 메시지는 onMessage 함수로 수신 합니다.
 
 ```javascript
 <script type="module">
-    // ... 
+    // ...
     onMessage(messaging, (payload) => {
     console.log('메시지가 수신되었습니다. ', payload);
     // ... 
 });
 ```
-### 2.7 서버에서 FCM 메시지 전송하기
+
+메시지 수신을 위해 위와 같은 설정을 마쳤다면, 서버에서 메시지를 전송하고 클라이언트에서 메시지를 수신할 수 있습니다.
+
+아래는 위 내용을 적용해 firebase hosting 에 배포한 페이지의 화면 입니다.
+
+![img_8.png](img_8.png)
+
+### 2.6 서버에서 FCM 메시지 전송하기
+
+본 예제에서는 3종의 메시지 전송 방법을 다루고 있습니다.
+
+아래는 FcmController 클래스에서 제공되는 메시지 전송 API 목록 입니다.
+
+다음 API 호출을 통해 메시지를 전송할 수 있습니다.
+
+| **수신 대상** | **URL**                                      | **설명**                                                |
+|-----------|----------------------------------------------|-------------------------------------------------------|
+| 특정 기기     | POST /api/v1/fcm/targets/{registrationToken} | FCM 토큰을 사용해 특정 클라이언트에게 메시지를 전송 합니다.                   |
+| 모든 기기     | POST /api/v1/fcm/multicast                   | 서버에 FCM 토큰을 등록한 모든 클라이언트에게 메시지를 전송 합니다.               |
+| Topic 구독  | POST /api/v1/fcm/topics/{topic}              | 서버를 통해 FCM 서버에 Topic을 등록(구독)한 모든 클라이언트에게 메시지를 전송 합니다. |
 
 ### 2.6 클라이언트에서 FCM 메시지 확인하기
 
-### 2.8 서버에서 FCM 메시지 삭제하기
+포스트맨(Postman)을 사용해 API를 호출해도 무방하지만 송/수신 테스트를 위해 만들어둔 HTML 을 이용해 진행하도록 하겠습니다.   
+서버 부팅 후 `http://localhost:48082/index` 페이지에 접속한 화면 입니다.
 
-### 2.9 서버에서 FCM 메시지 확인하기
+클라이언트의 FCM 토큰을 복사해 타겟 기기에 메시지를 전송해 보도록 하겠습니다.
 
+아래는 클라이언트의 FCM 토큰을 복사&붙여넣기 후 "메시지 전송" 버튼 클릭을 통해 클라이언트에 메시지를 전송하는 화면 입니다.   
+클라이언트의 화면이 `활성(active)` 상태이므로 포그라운드(foreground)로 수신된 메시지를 확인 할 수 있습니다.
 
-### 2.11 서버에서 FCM 메시지 전송 결과 확인하기
+![img_10.png](img_10.png)
+![img_11.png](img_11.png)
 
-### 2.12 서버에서 FCM 메시지 전송 결과 처리하기
+아래는 백그라운드(background)로 메시지 수신을 확인하기 위해 다른 탭을 활성화 시킨 상태에서 메시지를 전송한 화면 입니다.    
+클라이언트의 화면을 닫거나 탭을 `비활성(non-active)` 시킨 상태에서는 백그라운드(background)로 메시지가 수신 됩니다.
+![img_12.png](img_12.png)
 
-### 2.13 서버에서 FCM 메시지 전송 결과 저장하기
+✅ **참고 사항**
 
-### 2.14 서버에서 FCM 메시지 전송 결과 삭제하기
+- FCM 메시지를 수신하기 위해선 `HTTPS` 연결이 필수로 요구 됩니다. (※ 개발환경 localhost 는 제외)
+- 웹 앱에서 FCM 메시지를 수신하기 위해선 `Service Worker` 가 필수로 요구 됩니다.
+- FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `서비스 계정`을 생성해야 합니다.
+- FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `웹 푸시 인증서 키 쌍(key pair)`를 생성해야 합니다.
+- FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `프로젝트 설정 > 클라우드 메시징` 탭에서 `웹 구성`을 설정해야 합니다.
+- 예제에 사용된 모든 코드는 공식 문서(2025년 기준 02월 기준)를 참고하여 만들어 졌으며, HTTP v1 API 를 사용해 진행되었습니다.
 
-## 99. 참고 자료
-
-### 99.1 사이트
+✅ **사이트 참조**
 
 - [Firebase Cloud Messaging 공식문서](https://firebase.google.com/docs/cloud-messaging)
 - [FCM 알아보기](https://musma.github.io/2023/09/06/FCM-%EC%95%8C%EC%95%84%EB%B3%B4%EA%B8%B0.html#fcm-%EC%9D%B4%EB%9E%80)
