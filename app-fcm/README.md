@@ -1,14 +1,16 @@
+# FCM 실시간 메시징 시스템 예제
+
 ## FCM 이란?
 
 Firebase Cloud Messaging의 약자로 구글에서 제공하는 메시징 서비스로,   
 FCM은 서버에서 클라이언트로 안정적으로 메시지를 전달 할 수 있도록 도와주는 서비스입니다.
-![img_7.png](img_7.png)
+![img_7.png](docs/images/img_7.png)
 
 ## 1. FCM 알아보기
 
 ### 1.1 FCM 메시지 흐름
 
-![img.png](img.png)
+![img.png](docs/images/img.png)
 
 ### 1.2 FCM 사용을 위한 서버의 조건
 
@@ -64,7 +66,7 @@ SDK 초기화에 앞서 `서비스 계정의 비공개 키 파일(.json)`이 필
 프로젝트를 생성하게 되면 친절하게 Admin SDK 초기화 코드를 제공해 줍니다.  
 여기서 `새 비공개 키 생성` 버튼을 클릭하여 JSON 파일을 다운로드 받습니다. `키 파일`은 기밀 데이터이므로 공개저장소에 업로드 하지 않도록 주의합니다.   
 .gitignore 파일에 `*.json` 을 추가하여 업로드 되지 않도록 설정합니다.
-![img_2.png](img_2.png)
+![img_2.png](docs/images/img_2.png)
 
 다운로드 받은 JSON 파일을 프로젝트의 `resources` 디렉토리에 저장 후 SDK 를 초기화 하기 위해 다음과 같이 코드를 작성합니다.
 
@@ -138,13 +140,13 @@ message.apns      //Apple
 에 접속해 프로젝트>일반 페이지에서 "앱 생성"을 진행 합니다.   
 본 예제는 WebApp 으로 생성 했습니다.
 
-![img_1.png](img_1.png)
+![img_1.png](docs/images/img_1.png)
 
 앱 생성이 완료되면 다음과 같이 **firebase 앱 초기화** 코드에 대한 친절한 스니펫을 확인 할 수 있습니다.
-![img_3.png](img_3.png)
+![img_3.png](docs/images/img_3.png)
 
 이후 "Firebase 호스팅 사이트에 연결" 버튼을 클릭해 호스팅을 생성하도록 합니다.
-![img_4.png](img_4.png)
+![img_4.png](docs/images/img_4.png)
 
 다음 커맨드는 프로젝트 디렉터리를 생성할 **Root 경로에서 진행**하시길 권장 드립니다.    
 프로젝트 생성 단계에서 나열되는 목록 중     
@@ -162,7 +164,7 @@ message.apns      //Apple
 
 배포까지 성공하면 다음 링크를 통해 배포된 페이지를 확인 할 수 있습니다.
 
-![img_5.png](img_5.png) ![img_6.png](img_6.png)
+![img_5.png](docs/images/img_5.png) ![img_6.png](docs/images/img_6.png)
 
 ### 2.5 클라이언트에서 FCM 메시지 수신하기
 
@@ -308,7 +310,7 @@ token 을 발행하려면 vapiKey 값이 필요한데 [서비스 계정 생성 >
 
 아래는 위 내용을 적용해 firebase hosting 에 배포한 페이지의 화면 입니다.
 
-![img_8.png](img_8.png)
+![img_8.png](docs/images/img_8.png)
 
 ### 2.6 서버에서 FCM 메시지 전송하기
 
@@ -334,18 +336,18 @@ token 을 발행하려면 vapiKey 값이 필요한데 [서비스 계정 생성 >
 아래는 클라이언트의 FCM 토큰을 복사&붙여넣기 후 "메시지 전송" 버튼 클릭을 통해 클라이언트에 메시지를 전송하는 화면 입니다.   
 클라이언트의 화면이 `활성(active)` 상태이므로 포그라운드(foreground)로 수신된 메시지를 확인 할 수 있습니다.
 
-![img_10.png](img_10.png)
-![img_11.png](img_11.png)
+![img_10.png](docs/images/img_10.png)
+![img_11.png](docs/images/img_11.png)
 
 아래는 백그라운드(background)로 메시지 수신을 확인하기 위해 다른 탭을 활성화 시킨 상태에서 메시지를 전송한 화면 입니다.    
 클라이언트의 화면을 닫거나 탭을 `비활성(non-active)` 시킨 상태에서는 백그라운드(background)로 메시지가 수신 됩니다.
-![img_12.png](img_12.png)
+![img_12.png](docs/images/img_12.png)
 
 ✅ **참고 사항**
 
 - FCM 메시지를 수신하기 위해선 `HTTPS` 연결이 필수로 요구 됩니다. (※ 개발환경 localhost 는 제외)
 - 웹 앱에서 FCM 메시지를 수신하기 위해선 `Service Worker` 가 필수로 요구 됩니다.
-- FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `서비스 계정`을 생성해야 합니다.
+- FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `서비스 계정` 생성 및 `비공개 키 파일(.json)`을 발급 받아야 합니다.(※ 보안 주의)
 - FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `웹 푸시 인증서 키 쌍(key pair)`를 생성해야 합니다.
 - FCM 메시지를 수신하기 위해선 `Firebase Console` 에서 `프로젝트 설정 > 클라우드 메시징` 탭에서 `웹 구성`을 설정해야 합니다.
 - 예제에 사용된 모든 코드는 공식 문서(2025년 기준 02월 기준)를 참고하여 만들어 졌으며, HTTP v1 API 를 사용해 진행되었습니다.

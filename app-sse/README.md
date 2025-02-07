@@ -1,7 +1,16 @@
-# SSE(Server-Sent Events) + Redis 기반 실시간 메시징 시스템
+# SSE 실시간 메시징 시스템 예제
 
-Server-Sent Events 실시간 알림 서비스를 위한 SSE(Server-Sent Events) 구현 프로젝트입니다.   
-SSE 만을 사용한 예시와 분산 환경에서 서비스를 제공하기 위한 SSE + Redis 구현 예시를 제공합니다.
+실시간 알림 서비스를 위한 SSE 구현 프로젝트입니다.
+
+SSE Emitter와 SSE + Redis 구현 예시를 통해 분산 환경에서 서비스를 제공하는 방법을 설명합니다.
+
+## SSE 란?
+
+SSE(Server-Sent Events)는 서버에서 클라이언트로 실시간 데이터를 전송하는 단방향 웹 기술 입니다.
+
+HTTP 연결을 길제 유지하면서 서버가 클라이언트에게 단방향으로 데이터를 전송할 수 있습니다.
+
+※ HTTP는 Keep-Alive 연결을 사용하여 서버와 클라이언트 간의 연결을 유지할 수 있습니다.
 
 ## 1. 단일 서버 운영 시 문제점
 
@@ -258,3 +267,7 @@ spring:
 * `RabbitMQ`: 복잡한 라우팅이 필요한 메시징 시스템
 * `Kafka`: 대용량 데이터 처리, 장기 데이터 보관이 필요한 경우
 
+✅ **참고 사이트**
+
+- [MDN Web Docs - Server-Sent Event 사용하기](https://developer.mozilla.org/ko/docs/Web/API/Server-sent_events/Using_server-sent_events#%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%8A%A4%ED%8A%B8%EB%A6%BC_%ED%98%95%EC%8B%9D)
+- [Spring Class Document - SseEmitter](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/method/annotation/SseEmitter.html)
